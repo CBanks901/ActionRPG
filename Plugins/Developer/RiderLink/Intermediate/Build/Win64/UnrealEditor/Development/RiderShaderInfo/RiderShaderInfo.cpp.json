@@ -434,6 +434,8 @@
             "d:\\unreal engine 5\\ue_5.0\\engine\\source\\runtime\\core\\public\\async\\fundamental\\taskdelegate.h",
             "d:\\unreal engine 5\\ue_5.0\\engine\\source\\runtime\\core\\public\\experimental\\concurrentlinearallocator.h",
             "d:\\unreal engine 5\\ue_5.0\\engine\\source\\runtime\\core\\public\\hal\\mallocansi.h",
+            "d:\\program files(x86)\\microsoft visual studio\\2022\\community\\vc\\tools\\msvc\\14.35.32215\\include\\sanitizer\\asan_interface.h",
+            "d:\\program files(x86)\\microsoft visual studio\\2022\\community\\vc\\tools\\msvc\\14.35.32215\\include\\sanitizer\\common_interface_defs.h",
             "d:\\unreal engine 5\\ue_5.0\\engine\\source\\runtime\\core\\public\\misc\\scopeexit.h",
             "d:\\unreal engine 5\\ue_5.0\\engine\\source\\runtime\\core\\public\\misc\\launder.h",
             "d:\\unreal engine 5\\ue_5.0\\engine\\source\\runtime\\core\\public\\hal\\thread.h",
