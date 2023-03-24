@@ -3,31 +3,50 @@
 
 #include "SAction.h"
 #include "SActionComponent.h"
+#include <ActionRPG/ActionRPG.h>
+#include "Net/UnrealNetwork.h"
 
-
+void USAction::Initialize(USActionComponent* NewActionComp)
+{
+	ActionComp = NewActionComp;
+}
 
 void USAction::StartAction_Implementation(AActor* Instigator)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Running %s"), *GetNameSafe(this) );
+	//LogOnScreen(this, FString::Printf(TEXT("Start action: %s"), *ActionName.ToString()), FColor::Green);
 
 	USActionComponent* Comp = GetOwningComponent();
 
 	Comp->ActiveGameplayTags.AppendTags(GrantsTags);
 
-	bIsRunning = true;
+	RepData.bIsRunning = true;
+	RepData.Instigator = Instigator;
+
+	if (GetOwningComponent()->GetOwnerRole() == ROLE_Authority)
+	{
+		TimeStarted = GetWorld()->TimeSeconds;
+	}
+	
+	GetOwningComponent()->OnActionStarted.Broadcast(GetOwningComponent(), this);
+	
 }
 
 void USAction::StopAction_Implementation(AActor* Instigator)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Stopping %s"), *GetNameSafe(this));
+	//LogOnScreen(this, FString::Printf(TEXT("Stop Action: %s"), *ActionName.ToString()), FColor::White);
 
-	ensureAlways(bIsRunning);
+	//ensureAlways(bIsRunning);
 
 	USActionComponent* Comp = GetOwningComponent();
 
 	Comp->ActiveGameplayTags.RemoveTags(GrantsTags);
 
-	bIsRunning = false;
+	RepData.bIsRunning = false;
+	RepData.Instigator = Instigator;
+
+	GetOwningComponent()->OnActionStopped.Broadcast(GetOwningComponent(), this);
 }
 
 bool USAction::CanStart_Implementation(AActor* Instigator)
@@ -50,11 +69,11 @@ bool USAction::CanStart_Implementation(AActor* Instigator)
 UWorld* USAction::GetWorld() const
 {
 	// Outer is set when creating actino via NewObject<>
-	UActorComponent* comp = Cast<UActorComponent>(GetOuter());
+	AActor* Actor = Cast<AActor>(GetOuter());
 
-	if (comp)
+	if (Actor)
 	{
-		return comp->GetWorld();
+		return Actor->GetWorld();
 	}
 
 	return nullptr;
@@ -62,10 +81,34 @@ UWorld* USAction::GetWorld() const
 
 USActionComponent* USAction::GetOwningComponent() const
 {
-	return Cast<USActionComponent>(GetOuter());
+	return ActionComp;
 }
+
 
 bool USAction::IsRunning() const
 {
-	return bIsRunning;
+	return RepData.bIsRunning;
+}
+
+void USAction::OnRep_RepData()
+{
+	if (RepData.bIsRunning)
+	{
+		StartAction(RepData.Instigator);
+	}
+	else
+	{
+		StopAction(RepData.Instigator);
+	}
+}
+
+
+
+void USAction::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(USAction, RepData);
+	DOREPLIFETIME(USAction, ActionComp);
+	DOREPLIFETIME(USAction, TimeStarted);
 }

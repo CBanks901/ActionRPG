@@ -3,12 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
-#include "SGameplayInterface.h"
+#include "SPowerupActor.h"
 #include "SHealthPotion.generated.h"
 
 UCLASS()
-class ACTIONRPG_API ASHealthPotion : public AActor, public ISGameplayInterface
+class ACTIONRPG_API ASHealthPotion : public ASPowerupActor
 {
 	GENERATED_BODY()
 	
@@ -27,9 +26,14 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	UPROPERTY(BlueprintReadOnly)
+	float CreditCost;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	FText GetInteractText_Implementation(APawn* InstigatorPawn);
 
 protected:
 	UPROPERTY(VisibleAnywhere)

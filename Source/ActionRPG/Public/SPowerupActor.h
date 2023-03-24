@@ -19,8 +19,6 @@ public:
 
 	virtual void Interact_Implementation(APawn* InstigatorPawn) override;
 
-	virtual FText GetInteractText_Implementation(APawn* InstigatorPawn) override;
-
 	// Sets default values for this actor's properties
 	ASPowerupActor();
 
@@ -46,9 +44,13 @@ protected:
 	void SetPowerupState(bool bNewIsActive);
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
-		TObjectPtr<USphereComponent> SphereComp;
+	TObjectPtr<USphereComponent> SphereComp;
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
-		TObjectPtr<UStaticMeshComponent> MeshComp;
+	TObjectPtr<UStaticMeshComponent> MeshComp;
+
+public:
+
+	FText GetInteractText_Implementation(APawn* InstigatorPawn);
 
 };

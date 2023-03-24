@@ -43,26 +43,33 @@ bool USAttributeComponent::ApplyHealthChange(AActor* InstigatorActor, float Delt
 	/*TODO: if the health somehow fails or goes overboard, add the fix here*/
 
 	float OldHealth = Health;
+	float NewHealth = FMath::Clamp(Health + Delta, 0.0f, MaxHealth);
+	float ActualDelta = NewHealth - OldHealth;
 
-	Health = FMath::Clamp(Health + Delta, 0.0f, MaxHealth);
 
-	float ActualDelta = Health - OldHealth;
-
-	// Send out a signal alert that the health has been updated
-	//OnHealthChanged.Broadcast(InstigatorActor, this, Health, ActualDelta);
-
-	if (ActualDelta != 0)
+	// Is Server?
+	if (GetOwner()->HasAuthority())
 	{
-		MulitcastHealthChanged(InstigatorActor, Health, ActualDelta);
-	}
+		Health = NewHealth;
 
-	// Died
-	if (ActualDelta < 0.0f && Health == 0.0f)
-	{
-		ASGameModeBase* GM = GetWorld()->GetAuthGameMode<ASGameModeBase>();
-		if (GM)
+
+		// Send out a signal alert that the health has been updated
+		//OnHealthChanged.Broadcast(InstigatorActor, this, Health, ActualDelta);
+
+		if (ActualDelta != 0)
 		{
-			GM->OnActorKilled(GetOwner(), InstigatorActor);
+			MulitcastHealthChanged(InstigatorActor, Health, ActualDelta);
+		}
+
+		// Died
+		if (ActualDelta < 0.0f && Health == 0.0f)
+		{
+			ASGameModeBase* GM = GetWorld()->GetAuthGameMode<ASGameModeBase>();
+			if (GM)
+			{
+				GM->OnActorKilled(GetOwner(), InstigatorActor);
+			}
+
 		}
 
 	}
@@ -116,6 +123,16 @@ bool USAttributeComponent::isActorAlive(AActor* Actor)
 	}
 
 	return false;
+}
+
+bool USAttributeComponent::IsFullHealth() const
+{
+	return (Health == MaxHealth);
+}
+
+float USAttributeComponent::GetHealthMax() const
+{
+	return MaxHealth;
 }
 
 void USAttributeComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const

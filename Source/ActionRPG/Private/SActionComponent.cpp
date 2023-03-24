@@ -3,7 +3,11 @@
 
 #include "SActionComponent.h"
 #include "SAction.h"
+#include <ActionRPG/ActionRPG.h>
+#include "Net/UnrealNetwork.h"
+#include "Engine/ActorChannel.h"
 
+DECLARE_CYCLE_STAT(TEXT("STARTACTIONBYNAME"), STAT_StartActionByName, STATGROUP_STANFORD);
 
 USActionComponent::USActionComponent()
 {
@@ -17,19 +21,47 @@ void USActionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	for (TSubclassOf<USAction> actionclass : DefaultActions)
+	// Server only
+	if (GetOwner()->HasAuthority())
 	{
-		AddAction(GetOwner(), actionclass);
+		for (TSubclassOf<USAction> actionclass : DefaultActions)
+		{
+			AddAction(GetOwner(), actionclass);
+		}
 	}
 }
+
+void USActionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	// To stop all actions
+	TArray<USAction*> actionscopy = Actions;
+	for (USAction* action : actionscopy)
+	{
+		if (action && action->IsRunning())
+		{
+			action->StopAction(GetOwner());
+		}
+	}
+}
+
 
 
 void USActionComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	FString DebugMessage = GetNameSafe(GetOwner()) + " : " + ActiveGameplayTags.ToStringSimple();
-	GEngine->AddOnScreenDebugMessage(-1, 0, FColor::White, DebugMessage);
+	//FString DebugMessage = GetNameSafe(GetOwner()) + " : " + ActiveGameplayTags.ToStringSimple();
+	//GEngine->AddOnScreenDebugMessage(-1, 0, FColor::White, DebugMessage);
+
+	for (USAction* Action : Actions)
+	{
+		FColor TextColor = Action->IsRunning() ? FColor::Blue : FColor::White;
+		FString ActionMsg = FString::Printf(TEXT("[%s] Action: %s "), *GetNameSafe(GetOwner()), *GetNameSafe(Action));
+		
+		LogOnScreen(this, ActionMsg, TextColor, 0.0f);
+	}
 }
 
 void USActionComponent::AddAction(AActor* Instigator, TSubclassOf<USAction> ActionClass)
@@ -39,9 +71,17 @@ void USActionComponent::AddAction(AActor* Instigator, TSubclassOf<USAction> Acti
 		return;
 	}
 
-	USAction* NewAction = NewObject<USAction>(this, ActionClass);
+	// Skip for clients
+	if (!GetOwner()->HasAuthority())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Client attempting to AddAction. [Class: %s]"), *GetNameSafe(ActionClass) );
+		return;
+	}
+
+	USAction* NewAction = NewObject<USAction>(GetOwner(), ActionClass);
 	if (ensure(NewAction) )
 	{
+		NewAction->Initialize(this);
 		Actions.Add(NewAction);
 
 		if (NewAction->bAutoStart && ensure(NewAction->CanStart(Instigator) ) )
@@ -53,6 +93,8 @@ void USActionComponent::AddAction(AActor* Instigator, TSubclassOf<USAction> Acti
 
 bool USActionComponent::StartActionByName(AActor* Instigator, FName ActionName)
 {
+	SCOPE_CYCLE_COUNTER(STAT_StartActionByName);
+
 	for (USAction* action : Actions)
 	{
 		if (action && action->ActionName == ActionName)
@@ -70,8 +112,9 @@ bool USActionComponent::StartActionByName(AActor* Instigator, FName ActionName)
 				ServerStartAction(Instigator, ActionName);
 			}
 
-			
+			TRACE_BOOKMARK(TEXT("StartAction::%s"), *GetNameSafe(action) );
 			action->StartAction(Instigator);
+
 			return true;
 		}
 	}
@@ -87,6 +130,13 @@ bool USActionComponent::StopActionByName(AActor* Instigator, FName ActionName)
 		{
 			if (action->IsRunning())
 			{
+
+				// If this is the client
+				if (!GetOwner()->HasAuthority())
+				{
+					ServerStopAction(Instigator, ActionName);
+				}
+
 				action->StopAction(Instigator);
 				return true;
 			}
@@ -125,7 +175,34 @@ void USActionComponent::ServerStartAction_Implementation(AActor* Instigator, FNa
 	StartActionByName(Instigator, ActionName);
 }
 
+void USActionComponent::ServerStopAction_Implementation(AActor* Instigator, FName ActionName)
+{
+	StopActionByName(Instigator, ActionName);
+}
+
 void USActionComponent::ClientStartAction_Implementation(AActor* Instigator, FName ActionName)
 {
 	StartActionByName(Instigator, ActionName);
+}
+
+void USActionComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > &OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(USActionComponent, Actions);
+}
+
+bool USActionComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	for (USAction* Action : Actions)
+	{
+		if (Action)
+		{
+			WroteSomething |= Channel->ReplicateSubobject(Action, *Bunch, *RepFlags);
+		}
+	}
+
+	return WroteSomething;
 }

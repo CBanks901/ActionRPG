@@ -48,6 +48,7 @@ ASMagicProjectile::ASMagicProjectile()
 
 	StartEmitter = CreateDefaultSubobject<UParticleSystem>("StartEmitter");
 	
+	InitialLifeSpan = 10.0f;
 
 	Damage = -20.0f;
 	SetReplicates(true);
@@ -98,7 +99,7 @@ void ASMagicProjectile::OnActorOverlap(UPrimitiveComponent* OverlappedComponent,
 				{
 					// @fixme Should explode here
 
-					if (ActionComp)
+					if (ActionComp && HasAuthority())
 					{
 						//ActionComp->AddAction(GetInstigator(), BurningActionClass);
 						ActionComp->AddAction(GetInstigator(), ThornsActionClass);

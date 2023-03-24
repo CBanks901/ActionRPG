@@ -23,7 +23,7 @@ ASAICharacter::ASAICharacter()
 	actionComp = CreateDefaultSubobject<USActionComponent>("ActionComp");
 	TimeParameter = "Time To Hit";
 
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);
+	//GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);
 	GetMesh()->SetGenerateOverlapEvents(true);
 	
 	TargetActorKey = "TargetActor";

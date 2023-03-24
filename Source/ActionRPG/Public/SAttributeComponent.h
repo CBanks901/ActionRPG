@@ -24,6 +24,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Attributes", meta = (DisplayName ="IsAlive") )
 	static bool isActorAlive(AActor* Actor);
 
+	bool IsFullHealth() const;
+
+	float GetHealthMax() const;
+
 protected:
 
 

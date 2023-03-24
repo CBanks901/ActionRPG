@@ -7,6 +7,18 @@
 #include "GameplayTagContainer.h"
 #include "SAction.generated.h"
 
+USTRUCT()
+struct FActionRepData
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY()
+	AActor * Instigator;
+
+	UPROPERTY()
+	bool bIsRunning;
+};
 /**
  * 
  */
@@ -20,6 +32,12 @@ class ACTIONRPG_API USAction : public UObject
 	GENERATED_BODY()
 	
 protected:
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSoftObjectPtr<UTexture2D> icon;
+
+	UPROPERTY(Replicated)
+	USActionComponent* ActionComp;
 	
 	UFUNCTION(BlueprintCallable, Category = "Action")
 	USActionComponent* GetOwningComponent() const;
@@ -30,8 +48,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Tags")
 	FGameplayTagContainer BlockedTags;
 
-	bool bIsRunning;
+	UPROPERTY(ReplicatedUsing="OnRep_RepData")
+	FActionRepData RepData;
+
+	UFUNCTION()
+	void OnRep_RepData();
+
+	UPROPERTY(Replicated)
+	float TimeStarted;
+
 public:
+
+	void Initialize(USActionComponent* NewActionComp);
 
 	/* Starts immediately when added to the action component*/
 	UPROPERTY(EditDefaultsOnly, Category = "Action")
@@ -53,4 +81,9 @@ public:
 	FName ActionName;
 
 	UWorld* GetWorld() const override;
+
+	bool IsSupportedForNetworking() const override
+	{
+		return true;
+	};
 };

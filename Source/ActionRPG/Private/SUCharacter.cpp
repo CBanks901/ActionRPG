@@ -66,6 +66,7 @@ void ASUCharacter::OnHealthChanged(AActor* InstigatorActor, USAttributeComponent
 	{
 		APlayerController* playercontroller = Cast<APlayerController>(GetController() );
 		DisableInput(playercontroller);
+		SetLifeSpan(5.0f);
 	}
 	else if (Delta < 0.0f)
 	{
