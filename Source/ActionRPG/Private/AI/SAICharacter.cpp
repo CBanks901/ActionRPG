@@ -13,6 +13,7 @@
 #include "Components/CapsuleComponent.h"
 #include "SActionComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "SMiscellanousAIComponent.h"
 
 // Sets default values
 ASAICharacter::ASAICharacter()
@@ -21,16 +22,24 @@ ASAICharacter::ASAICharacter()
 	PawnSensingComp = CreateDefaultSubobject<UPawnSensingComponent>("PawnSensingComp");
 	attriComp = CreateDefaultSubobject<USAttributeComponent>("AttributeComp");
 	actionComp = CreateDefaultSubobject<USActionComponent>("ActionComp");
+	MiscallenousComp = CreateDefaultSubobject<USMiscellanousAIComponent>("MiscallaneousComp");
+
 	TimeParameter = "Time To Hit";
 
 	//GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);
 	GetMesh()->SetGenerateOverlapEvents(true);
 	
 	TargetActorKey = "TargetActor";
+	
 }
 
 void ASAICharacter::SetTargetActor(AActor* NewTarget)
 {
+	/*if (!GetTargetActor())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Blue, FString::Printf(TEXT("Target Actor for the AI is not set") ) );
+	}*/
+
 	AAIController* AIC = Cast<AAIController>(GetController());
 
 	if (AIC)
@@ -45,6 +54,11 @@ void ASAICharacter::PostInitializeComponents()
 
 	PawnSensingComp->OnSeePawn.AddDynamic(this, &ASAICharacter::OnPawnSeen);
 	attriComp->OnHealthChanged.AddDynamic(this, &ASAICharacter::OnHealthChanged);
+
+	if (!MiscallenousComp->Spawned)
+	{
+		MiscallenousComp->KillReward = 20.0f;
+	}
 }
 
 AActor* ASAICharacter::GetTargetActor() const
@@ -61,7 +75,7 @@ AActor* ASAICharacter::GetTargetActor() const
 
 void ASAICharacter::OnPawnSeen(APawn* Pawn)
 {
-		SetTargetActor(Pawn);
+		//SetTargetActor(Pawn);
 		//DrawDebugString(GetWorld(), GetActorLocation(), "Player Spotted!!", nullptr, FColor::White, 4.0f, true);
 
 		if (GetTargetActor() != Pawn)

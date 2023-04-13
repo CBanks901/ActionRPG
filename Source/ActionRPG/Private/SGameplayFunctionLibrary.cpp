@@ -3,6 +3,7 @@
 
 #include "SGameplayFunctionLibrary.h"
 #include "SAttributeComponent.h"
+#include "SGameModeBase.h"
 
 bool USGameplayFunctionLibrary::ApplyDamage(AActor* DamageCauser, AActor* TargetActor, float Amount)
 {
@@ -37,3 +38,5 @@ bool USGameplayFunctionLibrary::ApplyDirectionalDamage(AActor* DamageCauser, AAc
 
 	return false;
 }
+
+

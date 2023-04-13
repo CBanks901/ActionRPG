@@ -28,10 +28,10 @@ bool USAttributeComponent::ApplyHealthChange(AActor* InstigatorActor, float Delt
 		return false;
 	}
 
-	if (Delta > 0.0f && Health == MaxHealth)
+	/*if (Delta > 0.0f && Health == MaxHealth)
 	{
 		return false;
-	}
+	}*/
 
 	if (Delta < 0.0f)
 	{
@@ -79,7 +79,7 @@ bool USAttributeComponent::ApplyHealthChange(AActor* InstigatorActor, float Delt
 
 bool USAttributeComponent::LowHealth() const
 {
-	static float percentage = Health / MaxHealth;
+	float percentage = Health / MaxHealth;
 
 	return percentage <= .2 ? true : false;
 }
@@ -107,7 +107,8 @@ USAttributeComponent* USAttributeComponent::GetAttributes(AActor* FromActor)
 {
 	if (FromActor)
 	{
-		return Cast<USAttributeComponent>(FromActor->GetComponentByClass(USAttributeComponent::StaticClass()));
+		return FromActor->FindComponentByClass<USAttributeComponent>();
+		//return Cast<USAttributeComponent>(FromActor->GetComponentByClass(USAttributeComponent::StaticClass()));
 	}
 
 	return nullptr;
@@ -141,6 +142,7 @@ void USAttributeComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty 
 
 	DOREPLIFETIME(USAttributeComponent, Health);
 	DOREPLIFETIME(USAttributeComponent, MaxHealth);
+
 }
 
 void USAttributeComponent::MulitcastHealthChanged_Implementation(AActor* InstigatorActor, float NewHealth, float Delta)
@@ -151,7 +153,10 @@ void USAttributeComponent::MulitcastHealthChanged_Implementation(AActor* Instiga
 void USAttributeComponent::AddRage(float Delta)
 {
 	if (Delta == 0)
+	{
 		Rage = 0.0f;
+		OnHealthChanged.Broadcast(GetOwner(), this, Health, Delta);
+	}
 
 	if (Rage < MaxRage)
 	{

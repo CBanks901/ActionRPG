@@ -68,6 +68,7 @@ void USActionComponent::AddAction(AActor* Instigator, TSubclassOf<USAction> Acti
 {
 	if (!ensure(ActionClass) )
 	{
+		UE_LOG(LogTemp, Warning, TEXT("ActionClass passed in for AddAction in USActionComponent is invalid"));
 		return;
 	}
 
@@ -119,6 +120,7 @@ bool USActionComponent::StartActionByName(AActor* Instigator, FName ActionName)
 		}
 	}
 
+	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, FString::Printf(TEXT("Action '%s' does not exist."), *ActionName.ToString() ) );
 	return false;
 }
 
@@ -130,7 +132,6 @@ bool USActionComponent::StopActionByName(AActor* Instigator, FName ActionName)
 		{
 			if (action->IsRunning())
 			{
-
 				// If this is the client
 				if (!GetOwner()->HasAuthority())
 				{
@@ -158,15 +159,29 @@ void USActionComponent::RemoveAction(USAction* ActionToRemove)
 
 USAction* USActionComponent::GetAction(TSubclassOf<USAction> ActionClass) const
 {
-	
-	for (USAction* actions : Actions)
+	for (USAction* action : Actions)
 	{
-		if (actions && actions->ActionName == ActionClass.Get()->GetFName())
+		if (action && action->IsA(ActionClass) )
 		{
-			return actions;
+			return action;
+		}
+	}
+	//UE_LOG(LogTemp, Warning, TEXT("Action class '%s' does not exist in list of actions"), *ActionClass.Get()->GetFName().ToString());
+	UE_LOG(LogTemp, Warning, TEXT("Action class '%s' does not exist in list of actions"), *GetNameSafe(ActionClass));
+	return nullptr;
+}
+
+USAction* USActionComponent::GetActionByName(FName ActionName) const
+{
+	for (USAction* action : Actions)
+	{
+		if (action && (action->ActionName == ActionName))
+		{
+			return GetAction(action->GetClass());
 		}
 	}
 	
+	UE_LOG(LogTemp, Warning, TEXT("Action name '%s' does not exist in list of actions"), *ActionName.ToString());
 	return nullptr;
 }
 
@@ -178,11 +193,6 @@ void USActionComponent::ServerStartAction_Implementation(AActor* Instigator, FNa
 void USActionComponent::ServerStopAction_Implementation(AActor* Instigator, FName ActionName)
 {
 	StopActionByName(Instigator, ActionName);
-}
-
-void USActionComponent::ClientStartAction_Implementation(AActor* Instigator, FName ActionName)
-{
-	StartActionByName(Instigator, ActionName);
 }
 
 void USActionComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > &OutLifetimeProps) const

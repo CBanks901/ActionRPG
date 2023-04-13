@@ -42,6 +42,18 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	UParticleSystem* StartEmitter;
 
+	UFUNCTION(BlueprintCallable)
+	void Explode();
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+	UParticleSystem* ImpactVFX;
+
+	UPROPERTY(EditAnywhere)
+	float ImpactShakeInnerRadius;
+
+	UPROPERTY(EditAnywhere)
+	float ImpactShakeOuterRadius;
+
 	// Sets default values for this actor's properties
 	ASMagicProjectile();
 

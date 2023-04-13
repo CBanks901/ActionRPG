@@ -17,7 +17,7 @@ class ACTIONRPG_API USMonsterData : public UPrimaryDataAsset
 	
 public:
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawn Info")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawn Info", meta = (AssetBundles = "ClassBundle"))
 	TSubclassOf<AActor> MonsterClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Spawn Info")

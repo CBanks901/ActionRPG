@@ -21,6 +21,10 @@
 #include <ActionRPG/ActionRPG.h>
 #include "SActionComponent.h"
 #include <Engine/AssetManager.h>
+#include "Engine/TargetPoint.h"
+#include "SGameplayFunctionLibrary.h"
+#include "Components/BillboardComponent.h"
+#include "SMiscellanousAIComponent.h"
 
 static TAutoConsoleVariable<bool> CVarSpawnBots(TEXT("su.SpawnBots"), true, TEXT("Enabling spawning of bots via timer"), ECVF_Cheat);
 
@@ -48,7 +52,7 @@ void ASGameModeBase::InitGame(const FString& MapName, const FString& Options, FS
 	{
 		SlotName = SelectGameSlot;
 	}
-
+	
 	LoadSaveGame();
 }
 
@@ -56,16 +60,46 @@ void ASGameModeBase::StartPlay()
 {
 	Super::StartPlay();
 
+	LoadInHidingSpots();
+
 	GetWorldTimerManager().SetTimer(TimerHanlde_SpawnBots, this, &ASGameModeBase::SpawnBotTimerElapsed, SpawnTimerInterval, true);
 }
 
+void ASGameModeBase::LoadInHidingSpots()
+{
+	ATargetPoint* Point;
+	if (!Targets.IsEmpty())
+	{
+		for (TSoftObjectPtr<ATargetPoint> Points : Targets)
+		{
+			if (Points.IsValid())
+			{			
+				Point = Points.LoadSynchronous();
+				TArray<UActorComponent*> BillBoards = Point->GetComponentsByClass(UBillboardComponent::StaticClass());
+
+				if (BillBoards.Num() > 0)
+				{
+					for (UActorComponent* Boards : BillBoards)
+					{
+						UBillboardComponent* BillBoard = Cast<UBillboardComponent>(Boards);
+
+						if (BillBoard)
+						{
+							StoredHidingSpots.Add(BillBoard->GetComponentLocation());
+						}
+					}
+				}
+			}
+		}
+	}
+}
 
 void ASGameModeBase::OnQueryCompleted(UEnvQueryInstanceBlueprintWrapper* QueryInstance, EEnvQueryStatus::Type QueryStatus)
 {
 
 	if (QueryStatus != EEnvQueryStatus::Success)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Spawn bot query failed!!"));
+		//UE_LOG(LogTemp, Log, TEXT("Spawn bot query failed!!"));
 		return;
 	}
 
@@ -73,9 +107,6 @@ void ASGameModeBase::OnQueryCompleted(UEnvQueryInstanceBlueprintWrapper* QueryIn
 
 	if (Locations.Num() > 0)
 	{
-		FActorSpawnParameters Fparams;
-		Fparams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
 		if (MonsterTable)
 		{
 
@@ -92,7 +123,7 @@ void ASGameModeBase::OnQueryCompleted(UEnvQueryInstanceBlueprintWrapper* QueryIn
 				LogOnScreen(this, "Loading monster....", FColor::Green);
 				TArray<FName> Bundles;
 
-				FStreamableDelegate Delegate = FStreamableDelegate::CreateUObject(this, &ASGameModeBase::OnMonsterLoaded, SelectRow->MonsterID, Locations[0]);
+				FStreamableDelegate Delegate = FStreamableDelegate::CreateUObject(this, &ASGameModeBase::OnMonsterLoaded, SelectRow->MonsterID, Locations[0], SelectRow->KillReward);
 				AssetManager->LoadPrimaryAsset(SelectRow->MonsterID, Bundles, Delegate);
 			}
 
@@ -103,7 +134,7 @@ void ASGameModeBase::OnQueryCompleted(UEnvQueryInstanceBlueprintWrapper* QueryIn
 	} 
 }
 
-void ASGameModeBase::OnMonsterLoaded(FPrimaryAssetId LoadedId, FVector SpawnLocation)
+void ASGameModeBase::OnMonsterLoaded(FPrimaryAssetId LoadedId, FVector SpawnLocation, float Reward)
 {
 	LogOnScreen(this, "Finished loading monster....", FColor::Green);
 	UAssetManager* AssetManager = UAssetManager::GetIfValid();
@@ -114,24 +145,35 @@ void ASGameModeBase::OnMonsterLoaded(FPrimaryAssetId LoadedId, FVector SpawnLoca
 
 		if (MonsterData)
 		{
-			AActor* NewBot = GetWorld()->SpawnActor<AActor>(MonsterData->MonsterClass, SpawnLocation, FRotator::ZeroRotator);
+			FActorSpawnParameters Fparams;
+			Fparams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+			AActor* NewBot = GetWorld()->SpawnActor<AActor>(MonsterData->MonsterClass, SpawnLocation, FRotator::ZeroRotator, Fparams);
 
-				if (NewBot)
+			GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, *MonsterData->MonsterClass.Get()->GetFName().ToString());
+
+			if (NewBot)
+			{
+				LogOnScreen(this, FString::Printf(TEXT("Spawned enemy: %s (%s)"), *GetNameSafe(NewBot), *GetNameSafe(MonsterData)));
+
+				// Grants Buffs and Debuffs
+				USActionComponent* ActionComp = Cast<USActionComponent>(NewBot->GetComponentByClass(USActionComponent::StaticClass()));
+
+				if (ActionComp)
 				{
-					LogOnScreen(this, FString::Printf(TEXT("Spawned enemy: %s (%s)"), *GetNameSafe(NewBot), *GetNameSafe(MonsterData)));
-
-					// Grants Buffs and Debuffs
-					USActionComponent* ActionComp = Cast<USActionComponent>(NewBot->GetComponentByClass(USActionComponent::StaticClass()));
-
-					if (ActionComp)
+					for (TSubclassOf<USAction> ActionClass: MonsterData->Actions)
 					{
-						for (TSubclassOf<USAction> ActionClass: MonsterData->Actions)
-						{
-							ActionComp->AddAction(NewBot, ActionClass);
-						}
+						ActionComp->AddAction(NewBot, ActionClass);
 					}
-				
 				}
+				
+				USMiscellanousAIComponent* AIComp = NewBot->FindComponentByClass<USMiscellanousAIComponent>();
+				AIComp->Spawned = true;
+				if (AIComp)
+				{
+					AIComp->KillReward = Reward;
+				}
+				
+			}
 		}
 	}
 
@@ -154,6 +196,8 @@ void ASGameModeBase::KillAll()
 
 	}
 }
+
+
 
 
 
@@ -228,8 +272,67 @@ void ASGameModeBase::OnActorKilled(AActor* VictimActor, AActor* killer)
 		float respawndelay = 2.0f;
 		GetWorldTimerManager().SetTimer(TimerHandle_RespawnDelay, Delegate, respawndelay, false );
 	}
+	else
+	{
+		//resume = true;
+		for (int32 i = 0; i < GameState->PlayerArray.Num(); i++)
+		{
+			ASPlayerState* PS = Cast<ASPlayerState>(GameState->PlayerArray[i]);
+
+			if (PS->GetPlayerName() == *GetNameSafe(killer) )
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Killer equals player..."));
+			}
+
+			if (PS)
+			{
+				USMiscellanousAIComponent* AIComp = VictimActor->FindComponentByClass<USMiscellanousAIComponent>();
+				if (AIComp)
+				{
+					float Reward = AIComp->KillReward;
+					PS->AddCredits(Reward);
+				}
+
+				/*if (MonsterTable)
+				{
+					TArray<FMonsterTableRow*> Rows;
+					MonsterTable->GetAllRows("", Rows);
+
+					for (FMonsterTableRow* Row : Rows)
+					{
+						if (resume)
+						{
+							FStreamableDelegate del = FStreamableDelegate::CreateUObject(this, &ASGameModeBase::GetSpawnedClass, Row->MonsterID, PS, VictimActor, Row->KillReward);
+							TArray<FName> Bundle;
+							Bundle.Add("ClassBundle");
+
+							UAssetManager* AssetManager = UAssetManager::GetIfValid();
+
+							AssetManager->LoadPrimaryAsset(Row->MonsterID, Bundle, del);
+						}
+						else
+							break;
+					}
+				}
+			}*/
+			}
+		}
+	}
 
 	UE_LOG(LogTemp, Warning, TEXT("OnActor Killed! Victim: %s Killer: %s "), *GetNameSafe(player), *GetNameSafe(killer) );
+}
+
+void ASGameModeBase::GetSpawnedClass(FPrimaryAssetId Id, ASPlayerState* PS, AActor* VictimActor, float Reward)
+{
+	UAssetManager* AssetManager = UAssetManager::GetIfValid();
+
+	USMonsterData* Monster = Cast<USMonsterData>(AssetManager->GetPrimaryAssetObject(Id));
+
+	if (VictimActor->GetClass() == Monster->MonsterClass)
+	{
+		PS->AddCredits(Reward);
+		resume = false;
+	}
 }
 
 void ASGameModeBase::WriteSaveGame()

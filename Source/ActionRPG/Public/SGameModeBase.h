@@ -18,6 +18,8 @@ class UCurveFloat;
 class UMySaveGame;
 class UDataTable;
 class USMonsterData;
+class ATargetPoint;
+class ASPlayerState;
 
 USTRUCT(BlueprintType)
 struct FMonsterTableRow : public FTableRowBase
@@ -94,7 +96,20 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	UDataTable* MonsterTable;
 
-	void OnMonsterLoaded(FPrimaryAssetId LoadedId, FVector SpawnLocation);
+	void OnMonsterLoaded(FPrimaryAssetId LoadedId, FVector SpawnLocation, float Reward);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
+	TArray<TSoftObjectPtr<ATargetPoint>> Targets;
+
+	UPROPERTY(BlueprintReadOnly, Category = "AI")
+	TArray<FVector> StoredHidingSpots;
+
+	UFUNCTION()
+	void LoadInHidingSpots();
+
+	UFUNCTION()
+	void GetSpawnedClass(FPrimaryAssetId Id, ASPlayerState* PS, AActor* VictimActor, float Reward);
+
 public:
 
 	virtual void OnActorKilled(AActor* VictimActor, AActor* killer);
@@ -117,5 +132,8 @@ public:
 	void LoadSaveGame();
 
 	void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
+
+public:
+	bool resume;
 	
 };

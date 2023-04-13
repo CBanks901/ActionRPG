@@ -17,6 +17,15 @@ ASBarrelActor::ASBarrelActor()
 
 	RootComponent = StaticMeshComp;
 	RadialForceComp->SetupAttachment(StaticMeshComp);
+
+	RadialForceComp->SetAutoActivate(false);
+
+	RadialForceComp->Radius = 750.0f;
+	RadialForceComp->ImpulseStrength = 2500.0f;
+
+	RadialForceComp->bImpulseVelChange = true;
+
+	RadialForceComp->AddCollisionChannelToAffect(ECC_WorldDynamic);
 }
 
 // Called when the game starts or when spawned
@@ -26,6 +35,12 @@ void ASBarrelActor::BeginPlay()
 	
 }
 
+void ASBarrelActor::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	StaticMeshComp->OnComponentHit.AddDynamic(this, &ASBarrelActor::OnComponentHit);
+}
+
 // Called every frame
 void ASBarrelActor::Tick(float DeltaTime)
 {
@@ -33,3 +48,11 @@ void ASBarrelActor::Tick(float DeltaTime)
 
 }
 
+void ASBarrelActor::OnComponentHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	//RadialForceComp->FireImpulse();
+
+	FString CombinedString = FString::Printf(TEXT("Hit location: %s"), *Hit.ImpactPoint.ToString() );
+
+	DrawDebugString(GetWorld(), Hit.ImpactPoint, CombinedString, nullptr, FColor::Green, 2.0f, true);
+}

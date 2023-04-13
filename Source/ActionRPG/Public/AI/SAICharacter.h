@@ -11,6 +11,7 @@ class USAttributeComponent;
 class UUserWidget;
 class USWorldUserWidget;
 class USActionComponent;
+class USMiscellanousAIComponent;
 
 UCLASS()
 class ACTIONRPG_API ASAICharacter : public ACharacter
@@ -54,6 +55,10 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UUserWidget> SpottedWidgetClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Miscellaneous")
+	USMiscellanousAIComponent* MiscallenousComp;
+
 
 	//UPROPERTY(EditDefaults)
 	//FBlackboardKeySelector Target;

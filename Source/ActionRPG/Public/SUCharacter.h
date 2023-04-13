@@ -22,6 +22,8 @@ class ACTIONRPG_API ASUCharacter : public ACharacter
 	GENERATED_BODY()
 
 protected:
+	// All of these variables have been replaced by GAS and aren't needed anymore
+	/*
 	UPROPERTY(EditAnywhere, Category = "Attack")
 	TSubclassOf<AActor> ProjectileClass;
 
@@ -40,9 +42,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Abilities")
 	TSubclassOf<ASDashProjectile> DashingProjectileClass;
 
-	FTimerHandle TimerHandle_PrimaryAttack;
+	//FTimerHandle TimerHandle_PrimaryAttack;
 	ASDashProjectile* projectileRef;
-
+	*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USAttributeComponent* AttributeComp;
 
@@ -94,12 +96,12 @@ public:
 	virtual FVector GetPawnViewLocation() const override;
 
 	void PrimaryAttack();
-	void PrimaryAttack_TimerElapsed();
-	void PrimaryAttack_Ended();
+	//void PrimaryAttack_TimerElapsed();
+	//void PrimaryAttack_Ended();
 	void PrimaryInteract();
 
 	void DashAbility();
-	void DashAbilityTimer();
+	//void DashAbilityTimer();
 	void ThrowBlackHole();
 
 	void OnGround();

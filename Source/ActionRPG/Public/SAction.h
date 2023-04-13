@@ -7,6 +7,8 @@
 #include "GameplayTagContainer.h"
 #include "SAction.generated.h"
 
+
+
 USTRUCT()
 struct FActionRepData
 {

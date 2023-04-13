@@ -12,7 +12,8 @@
 #include "SActionComponent.h"
 #include "SActionEffect.h"
 #include "SActionThornEffect.h"
-//#include "SActionThornEffect.h"
+
+
 
 // Sets default values
 ASMagicProjectile::ASMagicProjectile()
@@ -49,6 +50,9 @@ ASMagicProjectile::ASMagicProjectile()
 	StartEmitter = CreateDefaultSubobject<UParticleSystem>("StartEmitter");
 	
 	InitialLifeSpan = 10.0f;
+
+	ImpactShakeOuterRadius = 50;
+	ImpactShakeInnerRadius = 50;
 
 	Damage = -20.0f;
 	SetReplicates(true);
@@ -89,7 +93,8 @@ void ASMagicProjectile::OnActorOverlap(UPrimitiveComponent* OverlappedComponent,
 			return;
 		}
 
-		USAttributeComponent* attributeComp = Cast<USAttributeComponent>(OtherActor->GetComponentByClass(USAttributeComponent::StaticClass() ) );
+		USAttributeComponent* attributeComp = OtherActor->FindComponentByClass<USAttributeComponent>();
+		//Cast<USAttributeComponent>(OtherActor->GetComponentByClass(USAttributeComponent::StaticClass() ) );
 
 		if (attributeComp)
 		{
@@ -102,7 +107,8 @@ void ASMagicProjectile::OnActorOverlap(UPrimitiveComponent* OverlappedComponent,
 					if (ActionComp && HasAuthority())
 					{
 						//ActionComp->AddAction(GetInstigator(), BurningActionClass);
-						ActionComp->AddAction(GetInstigator(), ThornsActionClass);
+						if (!ActionComp->GetAction(ThornsActionClass))
+							ActionComp->AddAction(GetInstigator(), ThornsActionClass);
 					}
 
 					if (CameraShakeClass)
@@ -127,3 +133,17 @@ void ASMagicProjectile::OnActorOverlap(UPrimitiveComponent* OverlappedComponent,
 	}
 }
 
+void ASMagicProjectile::Explode()
+{
+	if (ensure(!IsPendingKill()))
+	{
+		if (ImpactVFX)
+			UGameplayStatics::SpawnEmitterAtLocation(this, ImpactVFX, GetActorLocation(), GetActorRotation()) ;
+
+		if (!ImpactSound->Sound.IsNull())
+			UGameplayStatics::PlaySoundAtLocation(this, ImpactSound->Sound, GetActorLocation() );
+
+		if (CameraShakeClass)
+			UGameplayStatics::PlayWorldCameraShake(this, CameraShakeClass, GetActorLocation(), ImpactShakeInnerRadius, ImpactShakeOuterRadius);
+	}
+}

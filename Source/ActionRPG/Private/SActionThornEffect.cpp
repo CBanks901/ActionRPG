@@ -10,7 +10,7 @@ USActionThornEffect::USActionThornEffect()
 {
 	ReflectFraction = 0.2f;
 
-	Duration = 0.0f;
+	Duration = 10.0f;
 	Period = 0.0f;
 }
 

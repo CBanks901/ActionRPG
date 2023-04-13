@@ -26,8 +26,8 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	UPROPERTY(BlueprintReadOnly)
-	float CreditCost;
+	//UPROPERTY(BlueprintReadOnly)
+	//float CreditCost;
 
 public:	
 	// Called every frame

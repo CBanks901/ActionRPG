@@ -189,6 +189,7 @@ void ASUCharacter::PrimaryInteract()
 }
 
 // @REMOVEME NOT NEEDED ANYMORE
+/*
 // Actually spawns the projectile that is used
 void ASUCharacter::PrimaryAttack_TimerElapsed()
 {
@@ -250,13 +251,13 @@ void ASUCharacter::PrimaryAttack_TimerElapsed()
 		GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnTM, SpawnParams);
 	}
 }
-
+// Also not needed anymore
 void ASUCharacter::PrimaryAttack_Ended()
 {
 	lock = false;
 	;
 }
-
+*/
 void ASUCharacter::DashAbility()
 {
 	ActionComp->StartActionByName(this, "Dash");
@@ -287,13 +288,13 @@ void ASUCharacter::DashAbility()
 }
 
 // @REMOVEME NOT NEEDED ANYMORE
-void ASUCharacter::DashAbilityTimer()
+/*/void ASUCharacter::DashAbilityTimer()
 {
 	//SetActorLocation(projectileRef->GetActorLocation());
 	
 	GetWorldTimerManager().SetTimer(TimerHandle_PrimaryAttack, this, &ASUCharacter::OnGround, 4);
 }
-
+*/
 void ASUCharacter::ThrowBlackHole()
 {
 	ActionComp->StartActionByName(this, "Blackhole");

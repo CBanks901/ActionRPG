@@ -43,8 +43,12 @@ void ASDashProjectile::Destroyed()
 	// Note: the owner is set inside the owning character when it's spawning by calling SetOwner at the end
 	ASUCharacter* ownerRef = Cast<ASUCharacter>(GetOwner());
 
+	//GEngine->AddOnScreenDebugMessage(-1, 10, FColor::White, FString::Printf(TEXT("Dash projectile Owner value: %s"), *ownerRef->GetFName().ToString() ) );
 	if (ownerRef)
 	{
-		ownerRef->SetActorLocation(GetActorLocation());
+		if (TraceEndPoint != FVector(0.f, 0.f, 0.f))
+			ownerRef->SetActorLocation(TraceEndPoint);
+		else
+			ownerRef->SetActorLocation(GetActorLocation());
 	}
 }

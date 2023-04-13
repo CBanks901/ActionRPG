@@ -20,6 +20,12 @@ void ASPlayerController::TooglePauseMenu()
 
 		bShowMouseCursor = false;
 		SetInputMode(FInputModeGameOnly());
+
+		if (this->IsLocalController())
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 3.0, FColor::Cyan, FString::Printf(TEXT("UnPausing Game")));
+			ServerPause();
+		}
 		return;
 	}
 
@@ -31,6 +37,12 @@ void ASPlayerController::TooglePauseMenu()
 
 		bShowMouseCursor = true;
 		SetInputMode(FInputModeUIOnly());
+
+		if (this->IsLocalController() )
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 3.0, FColor::Cyan, FString::Printf(TEXT("Pausing Game")) );
+			ServerPause();
+		}
 	}
 }
 

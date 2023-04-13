@@ -20,16 +20,16 @@ EBTNodeResult::Type UUMyBTTask_RestoreMaxHealth::ExecuteTask(UBehaviorTreeCompon
 
 	if (OwningController)
 	{
-		AActor* Pawn = Cast<AActor>(OwningController->GetOwner());
-		if (Pawn)
+		AActor* Pawn_Ref = Cast<AActor>(OwningController->GetPawn());
+		if (Pawn_Ref)
 		{
-			USAttributeComponent* AttributeComp = USAttributeComponent::GetAttributes(Pawn);
+			USAttributeComponent* AttributeComp = USAttributeComponent::GetAttributes(Pawn_Ref);
 			if (AttributeComp)
 			{
 				float HealthRestore = BBC->GetValueAsFloat(HealthTarget.SelectedKeyName);
 
 				if (HealthRestore > 0.0f)
-					result = AttributeComp->ApplyHealthChange(Pawn, HealthRestore);
+					result = AttributeComp->ApplyHealthChange(Pawn_Ref, HealthRestore);
 			}
 			else
 			{

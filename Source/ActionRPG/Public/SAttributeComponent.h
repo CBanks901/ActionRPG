@@ -30,7 +30,6 @@ public:
 
 protected:
 
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Replicated, Category = "Attributes")
 	float Health;
 

@@ -26,7 +26,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Effects")
 	FName HandSocketName;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Attack")
+	UPROPERTY(EditAnywhere, Category = "Attack")
 	float AttackAnimDelay;
 
 	UPROPERTY(EditAnywhere, Category = "Attack")
@@ -36,7 +36,17 @@ protected:
 	UParticleSystem* CastingEffect;
 
 	UFUNCTION()
+	void SpawnDelay_Elapsed(ACharacter* InstigatorCharacter);
+
+	UFUNCTION()
 	void AttackDelay_Elapsed(ACharacter* InstigatorCharacter);
+
+
+	UFUNCTION()
+	void OnProjectileDataLoaded(FPrimaryAssetId LoadedId, AActor* Instigator);
+
+	UPROPERTY(EditDefaultsOnly, Category = "Data Assets")
+	FPrimaryAssetId Projectile_ID;
 
 public:
 

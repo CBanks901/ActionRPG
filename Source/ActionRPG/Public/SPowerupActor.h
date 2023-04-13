@@ -23,6 +23,7 @@ public:
 	ASPowerupActor();
 
 
+
 protected:
 
 	UPROPERTY(ReplicatedUsing = "OnRep_IsActive")
@@ -48,6 +49,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> MeshComp;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float CreditCost;
 
 public:
 

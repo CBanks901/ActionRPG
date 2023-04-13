@@ -14,7 +14,7 @@ void USAction::Initialize(USActionComponent* NewActionComp)
 void USAction::StartAction_Implementation(AActor* Instigator)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Running %s"), *GetNameSafe(this) );
-	//LogOnScreen(this, FString::Printf(TEXT("Start action: %s"), *ActionName.ToString()), FColor::Green);
+	LogOnScreen(this, FString::Printf(TEXT("Start action: %s"), *ActionName.ToString()), FColor::Green);
 
 	USActionComponent* Comp = GetOwningComponent();
 

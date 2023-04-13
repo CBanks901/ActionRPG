@@ -38,6 +38,8 @@ public:
 	void RemoveAction(USAction* ActionToRemove);
 
 	USAction* GetAction(TSubclassOf<USAction> ActionClass) const;
+
+	USAction* GetActionByName(FName ActionName) const;
 protected:
 
 	UFUNCTION(Server, Reliable)
@@ -46,8 +48,8 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerStopAction(AActor* Instigator, FName ActionName);
 
-	UFUNCTION(Client, Reliable)
-	void ClientStartAction(AActor* Instigator, FName ActionName);
+	//UFUNCTION(Client, Reliable)
+	//void ClientStartAction(AActor* Instigator, FName ActionName);
 
 	UPROPERTY(EditAnywhere, Category = "Actions")
 	TArray<TSubclassOf<USAction>> DefaultActions;
