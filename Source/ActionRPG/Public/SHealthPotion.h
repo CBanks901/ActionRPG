@@ -19,9 +19,6 @@ public:
 	// _Implementation is important here BECAUSE Native was specified in the original header (SGameplayInterface.h)
 	void Interact_Implementation(APawn* InstigatorPawn);
 
-	UFUNCTION()
-	void LockEffect(AActor* InstigatorObj);
-
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -36,9 +33,6 @@ public:
 	FText GetInteractText_Implementation(APawn* InstigatorPawn);
 
 protected:
-	UPROPERTY(VisibleAnywhere)
-	UStaticMeshComponent* PotionMesh;
-
-	bool TimeLock;
-	FTimerHandle LockHandle;
+	UPROPERTY(BlueprintReadOnly)
+	AActor* LastInstigator;
 };

@@ -34,6 +34,10 @@ public:
 	UPROPERTY()
 	int32 Credits;
 
+	// Store credits for multiple players
+	UPROPERTY()
+	TMap<FString, int32> PlayerCredits;
+
 	UPROPERTY()
 	TArray<FActorSaveData> SavedActors;
 };

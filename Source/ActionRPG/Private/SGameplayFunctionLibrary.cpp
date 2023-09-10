@@ -4,6 +4,8 @@
 #include "SGameplayFunctionLibrary.h"
 #include "SAttributeComponent.h"
 #include "SGameModeBase.h"
+#include "SPlayerState.h"
+#include "GameFramework/GameStateBase.h"
 
 bool USGameplayFunctionLibrary::ApplyDamage(AActor* DamageCauser, AActor* TargetActor, float Amount)
 {

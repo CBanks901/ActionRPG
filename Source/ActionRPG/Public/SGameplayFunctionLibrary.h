@@ -9,6 +9,8 @@
 /**
  * 
  */
+class ASPlayerState;
+
 UCLASS()
 class ACTIONRPG_API USGameplayFunctionLibrary : public UBlueprintFunctionLibrary
 {

@@ -26,11 +26,13 @@
 #include "Components/BillboardComponent.h"
 #include "SMiscellanousAIComponent.h"
 
+// create a console cheat that we can use to stop or continue spawning of AI bots
 static TAutoConsoleVariable<bool> CVarSpawnBots(TEXT("su.SpawnBots"), true, TEXT("Enabling spawning of bots via timer"), ECVF_Cheat);
 
 
 ASGameModeBase::ASGameModeBase()
 {
+	// Initialize all basic variables
 	SpawnTimerInterval = 2.0f;
 	CreditsPerKill = 20;
 
@@ -46,6 +48,7 @@ void ASGameModeBase::InitGame(const FString& MapName, const FString& Options, FS
 {
 	Super::InitGame(MapName, Options, ErrorMessage);
 
+	// Parse the data coming from the blueprint call when trying to open a new level from blueprint. Varaibles matches 'SaveGame' here
 	FString SelectGameSlot = UGameplayStatics::ParseOption(Options, "SaveGame");
 
 	if (SelectGameSlot.Len() > 0)
@@ -53,6 +56,7 @@ void ASGameModeBase::InitGame(const FString& MapName, const FString& Options, FS
 		SlotName = SelectGameSlot;
 	}
 	
+	// Call LoadSaveGame to pull in actor positions and save data
 	LoadSaveGame();
 }
 
@@ -62,6 +66,7 @@ void ASGameModeBase::StartPlay()
 
 	LoadInHidingSpots();
 
+	// Create the spawn timer that constantly spawns in actors 
 	GetWorldTimerManager().SetTimer(TimerHanlde_SpawnBots, this, &ASGameModeBase::SpawnBotTimerElapsed, SpawnTimerInterval, true);
 }
 
@@ -96,34 +101,45 @@ void ASGameModeBase::LoadInHidingSpots()
 
 void ASGameModeBase::OnQueryCompleted(UEnvQueryInstanceBlueprintWrapper* QueryInstance, EEnvQueryStatus::Type QueryStatus)
 {
-
+	//Purpose = Randomly select a type of actor from the data table MonsterTable and then attempt to load it based on its assetID
+	
+	
+	// if the query wasn't successfull, don't do anything else
 	if (QueryStatus != EEnvQueryStatus::Success)
 	{
 		//UE_LOG(LogTemp, Log, TEXT("Spawn bot query failed!!"));
 		return;
 	}
 
+	// Get all the locations of the query and store them into a TArray of FVectors called Locations
 	TArray<FVector> Locations = QueryInstance->GetResultsAsLocations();
 
+	// Ensure the location numbers are greater than 0 and that a data table for monster has been set
 	if (Locations.Num() > 0)
 	{
 		if (MonsterTable)
 		{
-
+			// An array of FMonsterTableRows being pulled and stored for Rows
 			TArray<FMonsterTableRow*> Rows;
 			MonsterTable->GetAllRows("", Rows);
 
+			// Grab a random index from the rows variable and store that into a SelectRow variable
 			int32 RandIndex = FMath::RandRange(0, Rows.Num() - 1);
 			FMonsterTableRow* SelectRow = Rows[RandIndex];
 
+			// Store the asset manager
 			UAssetManager* AssetManager = UAssetManager::GetIfValid();
 
 			if (AssetManager)
 			{
 				LogOnScreen(this, "Loading monster....", FColor::Green);
+				// Necessary variable for Asset Manager
 				TArray<FName> Bundles;
 
+				// Create a streamable delegate that contains all the data we need as the actor is spawned in
 				FStreamableDelegate Delegate = FStreamableDelegate::CreateUObject(this, &ASGameModeBase::OnMonsterLoaded, SelectRow->MonsterID, Locations[0], SelectRow->KillReward);
+				
+				// Load the primary asset using the id within the row we selected, the bundles variable and the delegate we just made
 				AssetManager->LoadPrimaryAsset(SelectRow->MonsterID, Bundles, Delegate);
 			}
 
@@ -136,21 +152,28 @@ void ASGameModeBase::OnQueryCompleted(UEnvQueryInstanceBlueprintWrapper* QueryIn
 
 void ASGameModeBase::OnMonsterLoaded(FPrimaryAssetId LoadedId, FVector SpawnLocation, float Reward)
 {
+	// Purpose = Attempt to spawn a selected actor type in and then assign it the SpawnLocation (based on query) as well as the reward which should be 
+	// based on the Monster table. Should follow the OnQueryCompleted function
+
 	LogOnScreen(this, "Finished loading monster....", FColor::Green);
 	UAssetManager* AssetManager = UAssetManager::GetIfValid();
 
 	if (AssetManager)
 	{
+		// Get MonsterData based on the incoming assetId LoadedI
 		USMonsterData* MonsterData = Cast<USMonsterData>(AssetManager->GetPrimaryAssetObject(LoadedId));
 
 		if (MonsterData)
 		{
+			// Begin spawning the monster based on the spawnlocation, as well as the class which is stored in MonsterData
+			// and ensure that it always spawn no matter what
 			FActorSpawnParameters Fparams;
 			Fparams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 			AActor* NewBot = GetWorld()->SpawnActor<AActor>(MonsterData->MonsterClass, SpawnLocation, FRotator::ZeroRotator, Fparams);
 
 			GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Green, *MonsterData->MonsterClass.Get()->GetFName().ToString());
 
+			// If the new AI spot is successfull then...
 			if (NewBot)
 			{
 				LogOnScreen(this, FString::Printf(TEXT("Spawned enemy: %s (%s)"), *GetNameSafe(NewBot), *GetNameSafe(MonsterData)));
@@ -158,6 +181,8 @@ void ASGameModeBase::OnMonsterLoaded(FPrimaryAssetId LoadedId, FVector SpawnLoca
 				// Grants Buffs and Debuffs
 				USActionComponent* ActionComp = Cast<USActionComponent>(NewBot->GetComponentByClass(USActionComponent::StaticClass()));
 
+				// If the ActionComp is valid then for every action within the MonsterData->Actions array.. add that to the ActionComp
+				// This allows us to mimic it as an A.I starts with these actions 
 				if (ActionComp)
 				{
 					for (TSubclassOf<USAction> ActionClass: MonsterData->Actions)
@@ -166,6 +191,7 @@ void ASGameModeBase::OnMonsterLoaded(FPrimaryAssetId LoadedId, FVector SpawnLoca
 					}
 				}
 				
+				// Get the miscellanous component specifically for killreward points/data and assign it the reward that was in the funciton call
 				USMiscellanousAIComponent* AIComp = NewBot->FindComponentByClass<USMiscellanousAIComponent>();
 				AIComp->Spawned = true;
 				if (AIComp)
@@ -176,9 +202,6 @@ void ASGameModeBase::OnMonsterLoaded(FPrimaryAssetId LoadedId, FVector SpawnLoca
 			}
 		}
 	}
-
-
-	
 }
 
 void ASGameModeBase::KillAll()
@@ -197,12 +220,9 @@ void ASGameModeBase::KillAll()
 	}
 }
 
-
-
-
-
 void ASGameModeBase::SpawnBotTimerElapsed()
 {
+	// If the gloabl spawn bots parameter is disabled, stop immediately
 	if (!CVarSpawnBots.GetValueOnGameThread())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Bot Spawning disabled via cvar 'CVarSpawnBots'"));
@@ -210,7 +230,9 @@ void ASGameModeBase::SpawnBotTimerElapsed()
 	}
 
 	int32 NOfAliveBots = 0;
-	// Iterates through the number of actors in the world
+
+	// Iterates through the number of actors based on ASAICharacter in the world and get their attribute components to determine 
+	// if the actor is alive or dead
 	for (TActorIterator<ASAICharacter> it(GetWorld()); it; ++it)
 	{
 		ASAICharacter* Bot = *it;
@@ -228,26 +250,42 @@ void ASGameModeBase::SpawnBotTimerElapsed()
 
 	float MaxCount = 10.0f;
 
+	// If the difficultly curve is set, increase MaxCount based on the amount of time currently passed in the world
+	// More time = More possible enemies
 	if (DifficultyCurve)
 	{
 		MaxCount = DifficultyCurve->GetFloatValue(GetWorld()->TimeSeconds);
 	}
 
+	// Stops the timer from consantly spawning in new bots if the number of bots alive currently is equal to the limit.
+	// Controllable in blueprint game mode
 	if (NOfAliveBots >= MaxCount)
 	{
 		UE_LOG(LogTemp, Log, TEXT("At maximum bot capacity. Skipping bot spawn"));
 		return;
 	}
 
-	UEnvQueryInstanceBlueprintWrapper* QueryInstance = UEnvQueryManager::RunEQSQuery(this, SpawnBotQuery, this, EEnvQueryRunMode::RandomBest5Pct, nullptr);
-	if ensure((QueryInstance))
+	// Ensure that the SpawnBotQuery which should be set in blueprint is valid
+	if (SpawnBotQuery)
 	{
-		QueryInstance->GetOnQueryFinishedEvent().AddDynamic(this, &ASGameModeBase::OnQueryCompleted);
+		// Create a eqs query and then bind the finished state of the query to a custom function called OnQueryCompleted which handles the end
+		UEnvQueryInstanceBlueprintWrapper* QueryInstance = UEnvQueryManager::RunEQSQuery(this, SpawnBotQuery, this, EEnvQueryRunMode::RandomBest5Pct, nullptr);
+		if ensure((QueryInstance))
+		{
+			QueryInstance->GetOnQueryFinishedEvent().AddDynamic(this, &ASGameModeBase::OnQueryCompleted);
+		}
+	}
+	else
+	{
+		// Clear the spawn timer since it is no longer possible to use it
+		GetWorld()->GetTimerManager().ClearTimer(TimerHanlde_SpawnBots);
 	}
 }
 
 void ASGameModeBase::RespawnPlayerElapsed(AController* Controller)
 {
+	// Ensuring that the incoming controller is valid
+	// unpossess it and then restart the player with a new one basically restarting the process
 	if (ensure(Controller))
 	{
 		Controller->UnPossess();
@@ -255,8 +293,6 @@ void ASGameModeBase::RespawnPlayerElapsed(AController* Controller)
 		RestartPlayer(Controller);
 	}
 }
-
-
 
 void ASGameModeBase::OnActorKilled(AActor* VictimActor, AActor* killer)
 {
@@ -344,7 +380,7 @@ void ASGameModeBase::WriteSaveGame()
 		if (PS)
 		{
 			PS->SavePlayerState(CurrentSaveGame);
-			break;	// single player only
+			//break;	// single player only
 		}
 	}
 
@@ -377,7 +413,7 @@ void ASGameModeBase::WriteSaveGame()
 	if (!UGameplayStatics::SaveGameToSlot(CurrentSaveGame, SlotName, 0) )
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Something went wrong"));
-	};
+	}
 }
 
 void ASGameModeBase::LoadSaveGame()
@@ -436,10 +472,23 @@ void ASGameModeBase::HandleStartingNewPlayer_Implementation(APlayerController* N
 {
 	Super::HandleStartingNewPlayer_Implementation(NewPlayer);
 
-	ASPlayerState* PS = Cast<ASPlayerState>(NewPlayer->PlayerState);
+	// Purpose - Allows us to load in the PlayerState in a way that happens before the game starts
+	
+	NewPlayer->PlayerState.Get()->SetPlayerName(NewPlayer->GetPawn()->GetName());
 
+	// Get the player state of the player and then call LoadPlayerState based on the current save data
+	ASPlayerState* PS = NewPlayer->GetPlayerState<ASPlayerState>();
+
+	UE_LOG(LogTemp, Warning, TEXT("Player State Name: %s"), *PS->GetPlayerName());
+	
 	if (PS)
 	{
 		PS->LoadPlayerState(CurrentSaveGame);
+		UE_LOG(LogTemp, Warning, TEXT("Player state '%s' s credits %s"), *PS->GetPlayerName(), *FString::FromInt(PS->GetCredits()));
 	}
+}
+
+AGameStateBase* ASGameModeBase::GetCurrentGameState()
+{
+	return GameState;
 }

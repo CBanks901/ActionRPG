@@ -70,4 +70,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void AddRage(float Delta);
+
+	UFUNCTION(BlueprintCallable)
+	float GetHealthToMax() const;
 };

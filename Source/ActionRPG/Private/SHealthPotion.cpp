@@ -5,6 +5,9 @@
 #include "SAttributeComponent.h"
 #include "GameFramework/GameStateBase.h"
 #include "SPlayerState.h"
+#include "GameFramework/GameStateBase.h"
+#include "GameFramework/PlayerState.h"
+#include "GameFramework/GameModeBase.h"
 
 
 #define LOCTEXT_NAMESPACE "InteractableActors" 
@@ -12,10 +15,10 @@
 // Sets default values
 ASHealthPotion::ASHealthPotion()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	PotionMesh = CreateDefaultSubobject<UStaticMeshComponent>("PotionMesh");
+	LastInstigator = NULL;
 
 	CreditCost = 50;
 }
@@ -25,7 +28,6 @@ ASHealthPotion::ASHealthPotion()
 void ASHealthPotion::BeginPlay()
 {
 	Super::BeginPlay();
-	TimeLock = false;
 }
 
 // Called every frame
@@ -39,25 +41,50 @@ void ASHealthPotion::Tick(float DeltaTime)
 
 void ASHealthPotion::Interact_Implementation(APawn* InstigatorPawn)
 {
-	//UE_LOG()
+
 	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, "Health potion check..");
 
-	if (!TimeLock)
+	// Get the Instigator's player state so we can pull credit information from them
+
+	AGameModeBase* GameMode = GetWorld()->GetAuthGameMode();
+	ASPlayerState* InstigatorPS = InstigatorPawn->GetPlayerState<ASPlayerState>();
+
+	/*for (int32 PlayerID = 0; PlayerID < GameMode->GameState->PlayerArray.Num(); PlayerID++)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Player Name: %s"), *GameMode->GameState->PlayerArray[PlayerID].Get()->GetFName().ToString());
+
+		if (InstigatorPawn->GetName() == GameMode->GameState->PlayerArray[PlayerID].Get()->GetPlayerName() )
+		{
+			InstigatorPS = Cast<ASPlayerState>(GameMode->GameState->PlayerArray[PlayerID].Get());
+			UE_LOG(LogTemp, Warning, TEXT("SUCESS"));
+			break;
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Instigator name = %s    Current array name = %s"), *InstigatorPawn->GetName(),
+				*GameMode->GameState->PlayerArray[PlayerID].Get()->GetPlayerName());
+		}
+	}*/
+
+	if (InstigatorPS && InstigatorPS->GetCredits() >= CreditCost)
+	{
+		// Convert parameter from pawn to actor and attempt to get the attribute component from there
 		AActor* Actor_Ref = Cast<AActor>(InstigatorPawn);
 		USAttributeComponent* AttributeComp = USAttributeComponent::GetAttributes(Actor_Ref);
 
-		if (AttributeComp)
+		// If health isn't full and the attribute component from the instigator is valid
+		if (AttributeComp && !AttributeComp->IsFullHealth())
 		{
-			if (AttributeComp->ApplyHealthChange(Actor_Ref, 20.0f))
+			// Apply health change and remove the credit cost (50 by defult) from the instigator
+			if (AttributeComp->ApplyHealthChange(this, AttributeComp->GetHealthToMax()))
 			{
-				TimeLock = true;
+				InstigatorPS->RemoveCredits(CreditCost);
 
-				FTimerDelegate delo;
-				delo.BindUFunction(this, "LockEffect", InstigatorPawn);
-				GetWorld()->GetTimerManager().SetTimer(LockHandle, delo, 10.0f, false);
+				// Set the incoming actor as the last instigator of this actor
+				LastInstigator = Actor_Ref;
 
-				PotionMesh->SetVisibility(false);
+				// Hide the actor for next use
+				HideAndCooldownPowerup();
 
 				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, "Restoring health");
 			}
@@ -66,12 +93,8 @@ void ASHealthPotion::Interact_Implementation(APawn* InstigatorPawn)
 				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, "Health already at maximum");
 			}
 		}
-	}
-	else
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, "Time still in progress");
-	}
 
+	}
 	// Course Answer
 	/*
 	USAttributeComponent* AttriComp = USAttributeComponent::GetAttributes(InstigatorPawn);
@@ -91,22 +114,23 @@ void ASHealthPotion::Interact_Implementation(APawn* InstigatorPawn)
 
 FText ASHealthPotion::GetInteractText_Implementation(APawn* InstigatorPawn)
 {
+	// Get the attribute component of the instigator for use below
 	USAttributeComponent* AttributeComponent = USAttributeComponent::GetAttributes(InstigatorPawn);
 
+	// If the instigator is already at full health, return this message
 	if (AttributeComponent && AttributeComponent->IsFullHealth())
 	{
 		return LOCTEXT("HealthPotion_FullHealthWarning", "Already at full health");
 	}
 
+	// Check if the player state for the instigator has credits that are at least equal to the credit cost. If not return this error message
+	if (InstigatorPawn->GetPlayerState<ASPlayerState>()->GetCredits() < CreditCost)
+	{
+		return LOCTEXT("HealthPotion_InsufficientFundsWarning", "Not enough credits to heal");
+	}
+
+	// Print this message by default if the above two conditions weren't triggered
 	return FText::Format(LOCTEXT("HealthPotion_InteractMessage", "Cost {0} Credits. Restores health to maximum."), CreditCost);
-}
-
-void ASHealthPotion::LockEffect(AActor* InstigatorObj)
-{
-	TimeLock = false;
-	PotionMesh->SetVisibility(true);
-
-	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Blue, "Health potion ready to be used again");
 }
 
 #undef LOCTEXT_NAMESPACE

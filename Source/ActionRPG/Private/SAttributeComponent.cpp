@@ -164,3 +164,8 @@ void USAttributeComponent::AddRage(float Delta)
 		Rage = FMath::Clamp(Rage, 0.0f, MaxRage);
 	}
 }
+
+float USAttributeComponent::GetHealthToMax() const
+{
+	return IsFullHealth() ? 0.0f : MaxHealth - Health;
+}

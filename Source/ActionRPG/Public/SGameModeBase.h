@@ -133,6 +133,9 @@ public:
 
 	void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
 
+	UFUNCTION(BlueprintCallable)
+	AGameStateBase* GetCurrentGameState();
+
 public:
 	bool resume;
 	

@@ -19,7 +19,6 @@ class ACTIONRPG_API ASPlayerState : public APlayerState
 	GENERATED_BODY()
 
 protected:
-
 	UPROPERTY(EditDefaultsOnly, Category = "Credits")
 	int32 Credits;
 
@@ -44,4 +43,8 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent)
 	void LoadPlayerState(UMySaveGame* SaveObject);
+
+	// Temporary value, only used when starting a new game and if there is more than one of the same type of player active
+	UPROPERTY(BlueprintReadOnly, Category = "ID")
+	int32 PlayerStateID;
 };

@@ -50,7 +50,13 @@ void ASPlayerState::SavePlayerState_Implementation(UMySaveGame* SaveObject)
 {
 	if (SaveObject)
 	{
-		SaveObject->Credits = Credits;
+		//SaveObject->Credits = Credits;
+		if (SaveObject->PlayerCredits.Contains(GetPlayerName()))
+			*SaveObject->PlayerCredits.Find(GetPlayerName()) = Credits;
+		else
+			SaveObject->PlayerCredits.Add(GetPlayerName(), Credits);
+
+		UE_LOG(LogTemp, Warning, TEXT("%s 's credits: %s"), *GetPlayerName(), *FString::FromInt(Credits));
 	}
 }
 
@@ -58,7 +64,18 @@ void ASPlayerState::LoadPlayerState_Implementation(UMySaveGame* SaveObject)
 {
 	if (SaveObject)
 	{
-		Credits = SaveObject->Credits;
+		// If the playercredits variable isn't empty and this name exists inside of it then proceed
+		if (!SaveObject->PlayerCredits.IsEmpty() && SaveObject->PlayerCredits.Contains(GetPlayerName() ))
+		{
+			//Credits = SaveObject->Credits;
+			Credits = *SaveObject->PlayerCredits.Find(GetPlayerName());
+		}
+		else
+		{
+			// If the playercredits object inside the save game is empty and or this player doesn't exist inside of it, then simply 
+			// set it's credits to 0 on load
+			Credits = 0;
+		}
 	}
 }
 

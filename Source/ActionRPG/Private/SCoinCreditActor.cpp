@@ -19,7 +19,19 @@ void ASCoinCreditActor::Interact_Implementation(APawn* InstigatorPawn)
 {
 	if (bIsActive)
 	{
-		HideAndCooldownPowerup();
+		// Get the player state coming from the InstigatorPawn parameter placed here
+		ASPlayerState* TargetPs = Cast<ASPlayerState>(InstigatorPawn->GetPlayerState());
+		
+		// If that player state is valid proceed.
+		if (TargetPs)
+		{
+			// Add the credits from here to the targets credit system and then hide this actor entirely
+			TargetPs->AddCredits(CreditsAward);
+
+			// This function will hide the collision of the actor, it's visibility and will also change the bIsActive variable to false
+			// until it is initialized again
+			HideAndCooldownPowerup();
+		}
 	}
 
 }
